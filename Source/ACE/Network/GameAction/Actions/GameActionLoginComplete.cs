@@ -10,7 +10,17 @@ namespace ACE.Network.GameAction
         public override void Handle()
         {
             session.Character.InWorld = true;
-            session.Character.SetPhysicsState(PhysicsState.ReportCollision | PhysicsState.Gravity | PhysicsState.EdgeSlide);
+
+            var setState         = new ServerPacket(0x18, PacketHeaderFlags.EncryptedChecksum);
+            var setStateFragment = new ServerPacketFragment(0x0A, FragmentOpcode.SetState);
+            setStateFragment.Payload.Write(session.Character.Guid.Full);
+            setStateFragment.Payload.Write((uint)(PhysicsState.ReportCollision | PhysicsState.Gravity | PhysicsState.EdgeSlide));
+            setStateFragment.Payload.Write((ushort)session.Character.LoginIndex);
+            setStateFragment.Payload.Write((ushort)++session.Character.PortalIndex);
+            setState.Fragments.Add(setStateFragment);
+
+            // TODO: should be broadcast
+            NetworkManager.SendPacket(ConnectionType.World, setState, session);
         }
     }
 }

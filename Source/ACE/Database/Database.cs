@@ -1,4 +1,5 @@
-﻿using MySql.Data.MySqlClient;
+﻿using ACE.Network;
+using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -34,8 +35,6 @@ namespace ACE.Database
     {
         private string connectionString;
         private Dictionary<uint, StoredPreparedStatement> preparedStatements = new Dictionary<uint, StoredPreparedStatement>();
-
-        protected abstract Type preparedStatementType { get; }
 
         public void Initialise(DatabaseType type, string host, uint port, string user, string password, string database)
         {
@@ -74,11 +73,13 @@ namespace ACE.Database
             InitialisePreparedStatements();
         }
 
+        protected abstract Type GetPreparedStatementType();
+
         protected virtual void InitialisePreparedStatements() { }
 
         protected void AddPreparedStatement<T>(T id, string query, params MySqlDbType[] types)
         {
-            Debug.Assert(typeof(T) == preparedStatementType);
+            Debug.Assert(typeof(T) == GetPreparedStatementType());
             Debug.Assert(types.Length == query.Count(c => c == '?'));
 
             try
@@ -102,7 +103,6 @@ namespace ACE.Database
             {
                 Console.WriteLine($"An exception occured while preparing statement {id.ToString()}!");
                 Console.WriteLine($"Exception: {exception.Message}");
-                Debug.Assert(false);
             }
         }
 
@@ -118,7 +118,7 @@ namespace ACE.Database
 
         private async void ExecutePreparedStatement<T>(bool async, T id, params object[] parameters)
         {
-            Debug.Assert(typeof(T) == preparedStatementType);
+            Debug.Assert(typeof(T) == GetPreparedStatementType());
 
             StoredPreparedStatement preparedStatement;
             Debug.Assert(preparedStatements.TryGetValue(Convert.ToUInt32(id), out preparedStatement));
@@ -154,7 +154,7 @@ namespace ACE.Database
 
         public MySqlResult SelectPreparedStatement<T>(T id, params object[] parameters)
         {
-            Debug.Assert(typeof(T) == preparedStatementType);
+            Debug.Assert(typeof(T) == GetPreparedStatementType());
 
             StoredPreparedStatement preparedStatement;
             Debug.Assert(preparedStatements.TryGetValue(Convert.ToUInt32(id), out preparedStatement));
@@ -192,7 +192,7 @@ namespace ACE.Database
 
         public async Task<MySqlResult> SelectPreparedStatementAsync<T>(T id, params object[] parameters)
         {
-            Debug.Assert(typeof(T) == preparedStatementType);
+            Debug.Assert(typeof(T) == GetPreparedStatementType());
 
             StoredPreparedStatement preparedStatement;
             Debug.Assert(preparedStatements.TryGetValue(Convert.ToUInt32(id), out preparedStatement));

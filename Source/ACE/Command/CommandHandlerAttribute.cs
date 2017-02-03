@@ -1,5 +1,4 @@
-﻿using ACE.Entity;
-using System;
+﻿using System;
 
 namespace ACE.Command
 {
@@ -7,16 +6,14 @@ namespace ACE.Command
     public class CommandHandlerAttribute : Attribute
     {
         public string Command { get; }
-        public AccessLevel Access { get; }
-        public CommandHandlerFlag Flags { get; }
         public int ParameterCount { get; }
+        public bool ConsoleInvoke { get; }
 
-        public CommandHandlerAttribute(string command, AccessLevel access, CommandHandlerFlag flags = CommandHandlerFlag.None, int parameterCount = -1)
+        public CommandHandlerAttribute(string command, int parameterCount = -1, bool consoleInvoke = true)
         {
             Command        = command;
-            Access         = access;
-            Flags          = flags;
             ParameterCount = parameterCount;
+            ConsoleInvoke  = consoleInvoke;
         }
     }
 }

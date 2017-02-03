@@ -8,9 +8,7 @@ namespace ACE.Entity
         public ObjectType Type { get; }
         public string Name { get; protected set; }
         public Position Position { get; protected set; }
-
         public ObjectDescriptionFlag DescriptionFlags { get; protected set; }
-        public PhysicsState PhysicsState { get; protected set; }
 
         public uint MovementIndex { get; set; }
         public uint TeleportIndex { get; set; }
@@ -39,7 +37,7 @@ namespace ACE.Entity
 
             PhysicsDescriptionFlag flags = PhysicsDescriptionFlag.CSetup | PhysicsDescriptionFlag.MTable | PhysicsDescriptionFlag.Stable | PhysicsDescriptionFlag.Petable | PhysicsDescriptionFlag.Position;
             objectCreateFragment.Payload.Write((uint)flags);
-            objectCreateFragment.Payload.Write((uint)PhysicsState);
+            objectCreateFragment.Payload.Write((uint)(PhysicsState.IgnoreCollision | PhysicsState.Gravity | PhysicsState.Hidden | PhysicsState.EdgeSlide));
 
             /*if ((flags & PhysicsDescriptionFlag.Movement) != 0)
             {
