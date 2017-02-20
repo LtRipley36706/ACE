@@ -78,7 +78,7 @@ namespace ACE.Command.Handlers
                 if (session == null)
                     Console.WriteLine("Account " + accountName + " does not exist.");
                 else
-                    ChatPacket.SendSystemMessage(session, "Account " + accountName + " does not exist.");
+                    ChatPacket.SendServerMessage(session, "Account " + accountName + " does not exist.", ChatMessageType.Broadcast);
                 return;
             }
 
@@ -123,7 +123,7 @@ namespace ACE.Command.Handlers
                 if (session == null)
                     Console.WriteLine("Account " + accountName + " does not exist.");
                 else
-                    ChatPacket.SendSystemMessage(session, "Account " + accountName + " does not exist.");
+                    ChatPacket.SendServerMessage(session, "Account " + accountName + " does not exist.", ChatMessageType.Broadcast);
                 return;
             }
             else
@@ -132,7 +132,7 @@ namespace ACE.Command.Handlers
             if (session == null)
                 Console.WriteLine("Account " + accountName + " updated with access rights set as " + articleAorAN + " " + Enum.GetName(typeof(AccessLevel), accessLevel) + ".");
             else
-                ChatPacket.SendSystemMessage(session, "Account " + accountName + " updated with access rights set as " + articleAorAN + " " + Enum.GetName(typeof(AccessLevel), accessLevel) + ".");
+                ChatPacket.SendServerMessage(session, "Account " + accountName + " updated with access rights set as " + articleAorAN + " " + Enum.GetName(typeof(AccessLevel), accessLevel) + ".", ChatMessageType.Broadcast);
         }
     }
 }

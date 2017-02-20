@@ -62,13 +62,13 @@ namespace ACE.Command.Handlers
                 if (session == null)
                     Console.WriteLine("Character " + characterName + " has been made " + articleAorAN + " " + Enum.GetName(typeof(AccessLevel), accessLevel) + ".");
                 else
-                    ChatPacket.SendSystemMessage(session, "Character " + characterName + " has been made " + articleAorAN + " " + Enum.GetName(typeof(AccessLevel), accessLevel) + ".");
+                    ChatPacket.SendServerMessage(session, "Character " + characterName + " has been made " + articleAorAN + " " + Enum.GetName(typeof(AccessLevel), accessLevel) + ".", ChatMessageType.Broadcast);
             }
             else
                 if (session == null)
                     Console.WriteLine("There is no character by the name of " + characterName + " found in the database. Has it been deleted?");
                 else
-                    ChatPacket.SendSystemMessage(session, "There is no character by the name of " + characterName + " found in the database. Has it been deleted?");
+                    ChatPacket.SendServerMessage(session, "There is no character by the name of " + characterName + " found in the database. Has it been deleted?", ChatMessageType.Broadcast);
         }
     }
 }
