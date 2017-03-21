@@ -9,7 +9,8 @@
             "OverrideCharacterPermissions": true,
             "DefaultAccessLevel": 0
         },
-        "DatFilesDirectory": "c:\\ACE"
+        "DatFilesDirectory": "c:\\ACE",
+        "ShutdownInterval":  "300"
     },
     "MySql": {
         "Authentication": {

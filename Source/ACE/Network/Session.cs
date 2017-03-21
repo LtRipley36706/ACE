@@ -223,5 +223,15 @@ namespace ACE.Network
 
             Player = null;
         }
+
+        /// <summary>
+        /// Sends a broadcast message to the player
+        /// </summary>
+        /// <param name="broadcastMessage"></param>
+        public void WorldBroadcast(string broadcastMessage)
+        {
+            var worldBroadcastMessage = new GameMessageSystemChat(broadcastMessage, ChatMessageType.Broadcast);
+            Network.EnqueueSend(worldBroadcastMessage);
+        }
     }
 }

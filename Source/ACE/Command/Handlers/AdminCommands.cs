@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 
 using ACE.Entity;
 using ACE.Entity.Enum;
@@ -1085,6 +1084,111 @@ namespace ACE.Command
             // @stormthresh - Sets how many character can be in a landblock before we do a portal storm.
 
             // TODO: output
+        }
+
+        /// <summary>
+        /// Cancels an in-progress shutdown event.
+        /// </summary>
+        /// <param name="session"></param>
+        /// <param name="parameters"></param>
+        [CommandHandler("cancel-shutdown", AccessLevel.Admin, CommandHandlerFlag.None, 0)]
+        public static void CancelShutdown(Session session, params string[] parameters)
+        {
+            ServerManager.CancelShutdown();
+        }
+
+        /// <summary>
+        /// Increase or decrease the server shutdown interval in seconds
+        /// </summary>
+        /// <param name="session"></param>
+        /// <param name="parameters"></param>
+        [CommandHandler("change-shutdown-interval", AccessLevel.Admin, CommandHandlerFlag.None, 1)]
+        public static void ChangeShutdownInterval(Session session, params string[] parameters)
+        {
+            if (parameters?.Length > 0)
+            {
+                uint newShutdownInterval = 0;
+                // delay server shutdown for up to x minutes
+                // limit to uint length 65535
+                string parseInt = parameters[0].Length > 5 ? parameters[0].Substring(0, 5) : parameters[0];
+                if (uint.TryParse(parseInt, out newShutdownInterval))
+                {
+                    if (newShutdownInterval > uint.MaxValue) newShutdownInterval = uint.MaxValue;
+                    // newShutdownInterval is represented as a time element
+                    // parsed from seconds into milliseconds
+                    // example: 2 minutes = 120 seconds = 120000 ms
+                    //          5 minutes = 300 seconds = 300000 ms
+                    //          10 minutes = 600 seconds = 600000 ms
+                    //          30 minutes = 1800 seconds = 1800000 ms
+                    //          1667 minutes = 99999 seconds = 99999000 ms
+                    // (CANNOT)?166667 minutes = 9999999 seconds = 9999999000 ms
+
+                    // set the interval
+                    ServerManager.setShutdownInterval(Convert.ToUInt32(newShutdownInterval));
+
+                    // message the admin
+                    ChatPacket.SendServerMessage(session, $"Shutdown Interval (seconds to shutdown server) has been set to {ServerManager.shutdownInterval}.", ChatMessageType.Broadcast);
+                    return;
+                }
+            }
+            ChatPacket.SendServerMessage(session, "Usage: /change-shutdown-interval <00000000>", ChatMessageType.Broadcast);
+        }
+
+        /// <summary>
+        /// Immediately begins the shutdown process by setting the shutdown interval to 0 before executing the shutdown method
+        /// </summary>
+        /// <param name="session"></param>
+        /// <param name="parameters"></param>
+        [CommandHandler("stop-now", AccessLevel.Admin, CommandHandlerFlag.None, -1)]
+        public static void ShutdownServerNow(Session session, params string[] parameters)
+        {
+            ServerManager.setShutdownInterval(0);
+            ShutdownServer(session, parameters);
+        }
+
+        /// <summary>
+        /// Function to shutdown the server from console or in-game.
+        /// </summary>
+        /// <param name="session"></param>
+        /// <param name="parameters"></param>
+        [CommandHandler("stop-server", AccessLevel.Admin, CommandHandlerFlag.None, 0)]
+        public static void ShutdownServer(Session session, params string[] parameters)
+        {
+            // inform the world that a shutdown is about to take place
+
+            string shutdownInitiator = (session == null ? "Server" : session.Player.Name.ToString());
+            string shutdownText = "";
+            string adminShutdownText = "";
+
+            // add admin shutdown text
+            if (parameters?.Length > 0)
+            {
+                foreach (var word in parameters)
+                {
+                    if (adminShutdownText.Length > 0)
+                        adminShutdownText += " " + (string)word;
+                    else
+                        adminShutdownText += (string)word;
+                }
+            }
+
+            shutdownText += $"{shutdownInitiator} initiated a complete server shutdown @ {DateTime.UtcNow} UTC";
+
+            // output to console (log in the future)
+            Console.WriteLine(shutdownText);
+            if (adminShutdownText.Length > 0)
+                Console.WriteLine("Admin message: " + adminShutdownText);
+
+            // send a message to each player that the server will go down in x interval
+            foreach (var player in WorldManager.GetAll())
+            {
+                // send server shutdown message
+                player.Network.EnqueueSend(new GameMessageSystemChat(shutdownText, ChatMessageType.Broadcast));
+                if (adminShutdownText.Length > 0)
+                    player.Network.EnqueueSend(new GameMessageSystemChat($"Message from {shutdownInitiator}: {adminShutdownText}", ChatMessageType.Broadcast));
+                player.Network.EnqueueSend(new GameMessageSystemChat($"The server will go down in {ServerManager.shutdownInterval}.", ChatMessageType.Broadcast));
+            }
+            ServerManager.BeginShutdown();
         }
     }
 }
