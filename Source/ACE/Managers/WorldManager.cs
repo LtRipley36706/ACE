@@ -20,7 +20,8 @@ namespace ACE.Managers
         private static readonly List<Session> sessionStore = new List<Session>();
         private static readonly ReaderWriterLockSlim sessionLock = new ReaderWriterLockSlim();
 
-        private static bool pendingWorldStop;
+        private static volatile bool pendingWorldStop;
+        public static bool WorldActive { get; private set; }
 
         public static DateTime WorldStartTime { get; } = DateTime.UtcNow;
 
@@ -130,6 +131,11 @@ namespace ACE.Managers
             }
         }
 
+        /// <summary>
+        /// Returns a list of all players currently online
+        /// </summary>
+        /// <param name="isOnlineRequired">false returns all players (offline or online)</param>
+        /// <returns>List<> of all online players on the server</returns>
         public static List<Session> GetAll(bool isOnlineRequired = true)
         {
             sessionLock.EnterReadLock();
@@ -146,6 +152,10 @@ namespace ACE.Managers
             }
         }
 
+        /// <summary>
+        /// Removes a player or worldobject from the active world.
+        /// </summary>
+        /// <param name="session"></param>
         public static void Remove(Session session)
         {
             sessionLock.EnterWriteLock();
@@ -159,12 +169,18 @@ namespace ACE.Managers
             }
         }
 
+        /// <summary>
+        /// Function to begin ending the operations inside of an active world.
+        /// </summary>
         public static void StopWorld() { pendingWorldStop = true; }
 
+        /// <summary>
+        /// Main Threaded Applcation loop that advances a world forward in time.
+        /// </summary>
         private static void UpdateWorld()
         {
             double lastTick = 0d;
-
+            WorldActive = true;
             var worldTickTimer = new Stopwatch();
             while (!pendingWorldStop)
             {
@@ -185,6 +201,8 @@ namespace ACE.Managers
                 lastTick = (double)worldTickTimer.ElapsedTicks / Stopwatch.Frequency;
                 PortalYearTicks += lastTick;
             }
+            // world has finished operations and concedes the thread to garbage collection
+            WorldActive = false;
         }
     }
 }

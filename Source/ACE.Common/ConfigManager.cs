@@ -23,6 +23,7 @@ namespace ACE.Common
         public ConfigServerNetwork Network { get; set; }
         public ConfigAccountDefaults Accounts { get; set; }
         public string DatFilesDirectory { get; set; }
+        public ushort ShutdownInterval { get; set; }
     }
 
     public struct ConfigMySqlDatabase

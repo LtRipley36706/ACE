@@ -16,6 +16,7 @@ namespace ACE
             Console.Title = "ACEmulator";
 
             ConfigManager.Initialise();
+            ServerManager.Initialise();
             DatabaseManager.Initialise();
             AssetManager.Initialise();
             InboundMessageManager.Initialise();
