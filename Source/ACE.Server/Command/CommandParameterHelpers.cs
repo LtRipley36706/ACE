@@ -605,8 +605,12 @@ namespace ACE.Server.Command
 
             try
             {
+                //coordNS = 64.26666666666667f;
+                //coordEW = 97.53333333333333f;
                 position = new Position(coordNS, coordEW);
                 position.AdjustMapCoords();
+                var lbid = -114359889;
+                position.Translate((uint)lbid);
             }
             catch (Exception e)
             {

@@ -3210,5 +3210,32 @@ namespace ACE.Server.Command.Handlers
                 PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} changed their Faction state to {session.Player.Society.ToSentence()}{(session.Player.Society != FactionBits.None ? $" with a rank of {rankStr}" : "")}.");
             }
         }
+
+        [CommandHandler("telev", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "")]
+        public static void HandleTeleToVCoord(Session session, params string[] parameters)
+        {
+            // Name,ObjectClass,LandCell,X,Y
+            // Master MacTavish,37,-114359889,97.14075000286103,-63.93749958674113
+
+            var split = string.Join(" ", parameters).Split(",");
+
+            var name = split[0].Trim();
+            var objectClass = split[1].Trim();
+            var strLandCell = split[2].Trim();
+            var strX = split[3].Trim();
+            var strY = split[4].Trim();
+
+            int.TryParse(strLandCell, out var landCell);
+            var objCellId = (uint)landCell;
+            float.TryParse(strX, out var x);
+            float.TryParse(strY, out var y);
+
+            var pos = new Position(y, x, true);
+            pos.AdjustMapCoords();
+            pos.Translate(objCellId);
+            pos.FindZ();
+
+            session.Player.Teleport(pos);
+        }
     }
 }
