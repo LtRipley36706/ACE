@@ -4,6 +4,8 @@ using System.Linq;
 using ACE.Common;
 using ACE.Database.Models.World;
 using ACE.Entity.Enum;
+using ACE.Server.Entity;
+using ACE.Server.Factories.Tables;
 using ACE.Server.WorldObjects;
 
 namespace ACE.Server.Factories
@@ -82,8 +84,14 @@ namespace ACE.Server.Factories
             // Properties for weapons
             double magicD = GetMagicMissileDMod(profile.Tier);
             double missileD = GetMagicMissileDMod(profile.Tier);
-            int gemCount = ThreadSafeRandom.Next(1, 5);
-            int gemType = ThreadSafeRandom.Next(10, 50);
+
+            int gemCount = 0;
+            if (wo.GemCode != null)
+                gemCount = GemCountChance.Roll(wo.GemCode.Value, profile.Tier);
+            else
+                gemCount = ThreadSafeRandom.Next(1, 5);
+
+            MaterialType gemType = RollGemType(profile.Tier);
             int workmanship = GetWorkmanship(profile.Tier);
             int wieldDiff = GetWieldDifficulty(profile.Tier, WieldType.MeleeWeapon);
             WieldRequirement wieldRequirments = WieldRequirement.RawSkill;
@@ -309,7 +317,7 @@ namespace ACE.Server.Factories
 
             // GemTypes, Material, Workmanship
             wo.GemCount = gemCount;
-            wo.GemType = (MaterialType)gemType;
+            wo.GemType = gemType;
             int materialType = GetMaterialType(wo, profile.Tier);
             if (materialType > 0)
                 wo.MaterialType = (MaterialType)materialType;

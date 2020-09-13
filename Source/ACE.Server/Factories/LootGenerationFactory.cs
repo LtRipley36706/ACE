@@ -224,7 +224,7 @@ namespace ACE.Server.Factories
                     break;
             }
 
-            var treasureItemType = TreasureItemTypeChances.Roll(treasureItemTypeChances);
+            var treasureItemType = treasureItemTypeChances.Roll();
 
             switch (treasureItemType)
             {
@@ -1460,7 +1460,7 @@ namespace ACE.Server.Factories
 
         private static int GetWorkmanship(int tier)
         {
-            int workmanship = 0;
+            /*int workmanship = 0;
             int chance = ThreadSafeRandom.Next(0, 99);
 
             switch (tier)
@@ -1545,7 +1545,9 @@ namespace ACE.Server.Factories
                     break;
             }
 
-            return workmanship;
+            return workmanship;*/
+
+            return WorkmanshipChance.Roll(tier);
         }
 
         private static int GetSpellcraft(WorldObject wo, int spellAmount, int tier)
@@ -2403,6 +2405,19 @@ namespace ACE.Server.Factories
         {
             wo.ProcSpell = (uint)cloakSpellId;
             return wo;
+        }
+
+        public static MaterialType RollGemType(int tier)
+        {
+            // previous formula
+            //return (MaterialType)ThreadSafeRandom.Next(10, 50);
+
+            // the gem class value can be further utilized for determining the item's monetary value
+            var gemClass = GemClassChance.Roll(tier);
+
+            var gemMaterial = GemMaterialChance.Roll(gemClass);
+
+            return gemMaterial;
         }
     }         
 }
