@@ -35,7 +35,9 @@ namespace ACE.Server.Managers
 
             LoadPropertiesFromDB();
 
-            if (Program.IsRunningInContainer && !GetString("content_folder").Equals("/ace/Content"))
+            var isRunningInContainer = Convert.ToBoolean(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"));
+
+            if (isRunningInContainer && !GetString("content_folder").Equals("/ace/Content"))
                 ModifyString("content_folder", "/ace/Content");
 
             _workerThread = new Timer(300000);

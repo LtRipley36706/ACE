@@ -26,7 +26,9 @@ namespace ACE.Server.Factories
             var starterGearFile = Path.Combine(exeLocation, starterGearFileName);
             var starterGearFileContainer = Path.Combine(containerConfigDirectory, starterGearFileName);
 
-            if (Program.IsRunningInContainer && File.Exists(starterGearFileContainer))
+            var isRunningInContainer = Convert.ToBoolean(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"));
+
+            if (isRunningInContainer && File.Exists(starterGearFileContainer))
                 File.Copy(starterGearFileContainer, starterGearFile, true);
 
             StarterGearConfiguration config;

@@ -26,7 +26,9 @@ namespace ACE.Server
             msg += "Server is compiled in RELEASE mode\n";
 #endif
 
-            if (Program.IsRunningInContainer)
+            var isRunningInContainer = Convert.ToBoolean(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"));
+
+            if (isRunningInContainer)
                 msg += "Server is running inside a Container\n";
             return msg;
         }
