@@ -151,6 +151,8 @@ namespace ACE.Server.SLICE
             log.Info("Initializing ConfigManager...");
             ConfigManager.Initialize();
 
+            NetworkManager.ServerId = 0x18;
+
             if (ConfigManager.Config.Server.WorldName != "ACEmulator")
             {
                 consoleTitle = $"{ConfigManager.Config.Server.WorldName} | SLICE: 0x{NetworkManager.ServerId:X} | {consoleTitle}";

@@ -23,7 +23,7 @@ namespace ACE.Server.Network.Managers
         private static readonly ILog packetLog = LogManager.GetLogger(System.Reflection.Assembly.GetEntryAssembly(), "Packets");
 
         // Hard coded server Id, this will need to change if we move to multi-process or multi-server model
-        public const ushort ServerId = 0xB;
+        public static ushort ServerId { get; set; } = 0xB;
 
         /// <summary>
         /// Seconds until a session will timeout. 
@@ -77,7 +77,31 @@ namespace ACE.Server.Network.Managers
                         session.Network.sendResync = true;
                         AuthenticationHandler.HandleConnectResponse(session);
                     }
-
+                    else
+                    {
+                        sessionLock.EnterReadLock();
+                        try
+                        {
+                            session =
+                                (from k in sessionMap
+                                 where
+                                     k != null &&
+                                     k.State == SessionState.WorldConnectResponse &&
+                                     k.Network.ConnectionData.ConnectionCookie == connectResponse.Check &&
+                                     k.EndPoint.Address.Equals(endPoint.Address)
+                                 select k).FirstOrDefault();
+                        }
+                        finally
+                        {
+                            sessionLock.ExitReadLock();
+                        }
+                        if (session != null)
+                        {
+                            session.State = SessionState.WorldConnected;
+                            session.Network.sendResync = true;
+                            //AuthenticationHandler.HandleWorldConnectResponse(session);
+                        }
+                    }
                 }
                 else if (packet.Header.Id == 0 && packet.Header.HasFlag(PacketHeaderFlags.CICMDCommand))
                 {
@@ -121,6 +145,57 @@ namespace ACE.Server.Network.Managers
                             if (session != null)
                             {
                                 if (session.State == SessionState.AuthConnectResponse)
+                                {
+                                    // connect request packet sent to the client was corrupted in transit and session entered an unspecified state.
+                                    // ignore the request and remove the broken session and the client will start a new session.
+                                    RemoveSession(session);
+                                    log.Warn($"Bad handshake from {endPoint}, aborting session.");
+                                }
+
+                                session.ProcessPacket(packet);
+                            }
+                            else
+                            {
+                                log.InfoFormat("Login Request from {0} rejected. Failed to find or create session.", endPoint);
+                                SendLoginRequestReject(connectionListener, endPoint, CharacterError.LogonServerFull);
+                            }
+                        }
+                        else
+                        {
+                            log.InfoFormat("Login Request from {0} rejected. Session would exceed MaximumAllowedSessionsPerIPAddress limit.", endPoint);
+                            SendLoginRequestReject(connectionListener, endPoint, CharacterError.LogonServerFull);
+                        }
+                    }
+                }
+                else if (packet.Header.HasFlag(PacketHeaderFlags.WorldLoginRequest))
+                {
+                    packetLog.Debug($"{packet}, {endPoint}");
+                    if (GetAuthenticatedSessionCount() >= ConfigManager.Config.Server.Network.MaximumAllowedSessions)
+                    {
+                        log.InfoFormat("Login Request from {0} rejected. Server full.", endPoint);
+                        SendLoginRequestReject(connectionListener, endPoint, CharacterError.LogonServerFull);
+                    }
+                    else if (ServerManager.ShutdownInProgress)
+                    {
+                        log.InfoFormat("Login Request from {0} rejected. Server is shutting down.", endPoint);
+                        SendLoginRequestReject(connectionListener, endPoint, CharacterError.ServerCrash1);
+                    }
+                    else if (ServerManager.ShutdownInitiated && (ServerManager.ShutdownTime - DateTime.UtcNow).TotalMinutes < 2)
+                    {
+                        log.InfoFormat("Login Request from {0} rejected. Server shutting down in less than 2 minutes.", endPoint);
+                        SendLoginRequestReject(connectionListener, endPoint, CharacterError.ServerCrash1);
+                    }
+                    else
+                    {
+                        log.DebugFormat("Login Request from {0}", endPoint);
+
+                        var ipAllowsUnlimited = ConfigManager.Config.Server.Network.AllowUnlimitedSessionsFromIPAddresses.Contains(endPoint.Address.ToString());
+                        if (ipAllowsUnlimited || ConfigManager.Config.Server.Network.MaximumAllowedSessionsPerIPAddress == -1 || GetSessionEndpointTotalByAddressCount(endPoint.Address) < ConfigManager.Config.Server.Network.MaximumAllowedSessionsPerIPAddress)
+                        {
+                            var session = FindOrCreateSession(connectionListener, endPoint);
+                            if (session != null)
+                            {
+                                if (session.State == SessionState.WorldConnectResponse)
                                 {
                                     // connect request packet sent to the client was corrupted in transit and session entered an unspecified state.
                                     // ignore the request and remove the broken session and the client will start a new session.

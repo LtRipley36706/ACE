@@ -255,5 +255,59 @@ namespace ACE.Server.Network.Handlers
             session.Network.EnqueueSend(characterListMessage, serverNameMessage);
             session.Network.EnqueueSend(dddInterrogation);
         }
+
+        public static void HandleWorldLoginRequest(ClientPacket packet, Session session)
+        {
+            //PacketInboundWorldLoginRequest loginRequest = new PacketInboundWorldLoginRequest(packet);
+            //ulong connectionKey = loginRequest.ConnectionKey;
+            //if (session.WorldConnectionKey == 0)
+            //    session = WorldManager.Find(connectionKey);
+
+            //if (connectionKey != session.WorldConnectionKey || connectionKey == 0)
+            //{
+            //    session.SendCharacterError(CharacterError.EnterGamePlayerAccountMissing);
+            //    return;
+            //}
+
+            //session.State = SessionState.WorldConnectResponse;
+
+            //PacketOutboundConnectRequest connectRequest = new PacketOutboundConnectRequest(ISAAC.WorldServerSeed, ISAAC.WorldClientSeed);
+            //session.WorldSession.EnqueueSend(connectRequest);
+
+            packetLog.DebugFormat("ConnectRequest TS: {0}", Timers.PortalYearTicks);
+
+            if (session.Network.ConnectionData.ServerSeed == null || session.Network.ConnectionData.ClientSeed == null)
+            {
+                // these are null if ConnectionData.DiscardSeeds() is called because of some other error condition.
+                session.Terminate(SessionTerminationReason.BadHandshake, new GameMessageCharacterError(CharacterError.ServerCrash1));
+                return;
+            }
+
+            var connectRequest = new PacketOutboundConnectRequest(
+                Timers.PortalYearTicks,
+                session.Network.ConnectionData.ConnectionCookie,
+                session.Network.ClientId,
+                session.Network.ConnectionData.ServerSeed,
+                session.Network.ConnectionData.ClientSeed);
+
+            session.Network.ConnectionData.DiscardSeeds();
+
+            session.Network.EnqueueSend(connectRequest);
+
+            session.State = SessionState.WorldConnectResponse;
+        }
+
+        public static void HandleWorldConnectResponse(ClientPacket packet, Session session)
+        {
+            //session.State = SessionState.WorldConnected;
+            //var serverSwitch = new PacketOutboundServerSwitch();
+            //session.WorldSession.EnqueueSend(serverSwitch);
+            //session.WorldSession.Flush();
+            //session.WorldSession.EnqueueSend(new GameEventPopupString(session, ConfigManager.Config.Server.Welcome));
+            //session.WorldSession.Flush();
+            //session.Player.Load();
+
+            session.State = SessionState.WorldConnected;
+        }
     }
 }

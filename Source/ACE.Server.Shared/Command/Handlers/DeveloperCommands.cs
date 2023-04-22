@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Numerics;
+using System.Security.Cryptography;
+using System.Threading.Tasks;
 
 using log4net;
 
@@ -26,6 +27,7 @@ using ACE.Server.Managers;
 using ACE.Server.Network;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
+using ACE.Server.Network.Packets;
 using ACE.Server.Physics.Entity;
 using ACE.Server.Physics.Extensions;
 using ACE.Server.Physics.Managers;
@@ -3929,6 +3931,39 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
+        [CommandHandler("test-referral", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld)]
+        public static void HandleFakeReferral(Session session, params string[] parameters)
+        {
+            var connectionKey = new byte[sizeof(ulong)];
+            RandomNumberGenerator.Create().GetNonZeroBytes(connectionKey);
+            var worldConnectionKey = BitConverter.ToUInt64(connectionKey, 0);
 
+            var sessionIPAddress = session.EndPoint.Address.ToString().Split(".");
+
+            var serverId = 0x18;
+            var serverHost = new byte[] { 127, 0, 0, 1 };
+            var serverPort = (ushort)9002;
+            var serverHostInternal = new byte[] { 127, 0, 0, 1 };
+
+            var referral = new PacketOutboundReferral(worldConnectionKey, sessionIPAddress, serverHost, serverPort, false, serverHostInternal);
+
+            session.Network.EnqueueSend(referral);
+
+            var serverHostString = string.Join(".", serverHost);
+
+            session.Player.SendMessage($"Referral for 0x{serverId:X} ({serverHostString}:{serverPort}) sent to your client.");
+        }
+
+        [CommandHandler("test-switch", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld)]
+        public static void HandleFakeSwitch(Session session, params string[] parameters)
+        {
+            var serverId = 0x18;
+
+            var serverSwitch = new PacketOutboundServerSwitch();
+
+            session.Network.EnqueueSend(serverSwitch);
+
+            session.Player.SendMessage($"ServerSwitch sent to your client.");
+        }
     }
 }
