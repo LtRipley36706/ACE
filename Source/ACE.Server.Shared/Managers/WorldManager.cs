@@ -71,13 +71,13 @@ namespace ACE.Server.Managers
                 log.Info($"To open world to players, use command: world open");
         }
 
-        internal static void Open(Player player)
+        public static void Open(Player player)
         {
             WorldStatus = WorldStatusState.Open;
             PlayerManager.BroadcastToAuditChannel(player, "World is now open");
         }
 
-        internal static void Close(Player player, bool bootPlayers = false)
+        public static void Close(Player player, bool bootPlayers = false)
         {
             WorldStatus = WorldStatusState.Closed;
             var msg = "World is now closed";

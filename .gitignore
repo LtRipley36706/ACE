@@ -296,9 +296,12 @@ db-data/
 AppVeyor/
 
 # ACEmulator specific files
-Source/ACE.Server/config.js
-Source/ACE.Server/Config.js
+Source/ACE.Server/[Cc]onfig.js
 Database/tools/password.txt
 Source/ACE.Server/log4net.config
 docker.env
 docker-compose.yml
+Source/ACE.Server.GLS/[Cc]onfig.js
+Source/ACE.Server.GLS/log4net.config
+Source/ACE.Server.SLICE/[Cc]onfig.js
+Source/ACE.Server.SLICE/log4net.config

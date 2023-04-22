@@ -3,9 +3,22 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
     <Platforms>x64</Platforms>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="log4net" Version="2.0.14" />
+    <PackageReference Include="Log4Net.Async.Standard" Version="3.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ACE.Server.Shared\ACE.Server.Shared.csproj" />
+  </ItemGroup>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="if exist &quot;$(ProjectDir)Config.js&quot; copy &quot;$(ProjectDir)Config.js&quot; &quot;$(TargetDir)Config.js&quot;&#xD;&#xA;if not exist &quot;$(ProjectDir)log4net.config&quot; if exist &quot;$(TargetDir)log4net.config&quot; copy &quot;$(TargetDir)log4net.config&quot; &quot;$(ProjectDir)log4net.config&quot;&#xD;&#xA;if exist &quot;$(ProjectDir)log4net.config&quot; copy &quot;$(ProjectDir)log4net.config&quot; &quot;$(TargetDir)log4net.config&quot;" />
+  </Target>
 
 </Project>

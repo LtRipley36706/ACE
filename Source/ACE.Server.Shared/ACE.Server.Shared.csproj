@@ -223,4 +223,10 @@
     </Compile>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="starterGear.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
