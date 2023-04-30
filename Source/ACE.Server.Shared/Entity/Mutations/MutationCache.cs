@@ -512,7 +512,7 @@ namespace ACE.Server.Entity.Mutations
             return null;
         }
 
-        private static readonly string prefix = "ACE.Server.Entity.Mutations.";
+        private static readonly string prefix = "ACE.Server.Shared.Entity.Mutations.";
 
         private static List<string> ReadScript(string filename)
         {
