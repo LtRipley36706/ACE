@@ -670,15 +670,15 @@ namespace ACE.Server.Network
                 // This is to catch a race condition between .Count and .Min() and .Max()
                 try
                 {
-                    log.Error($"Session {session.Network?.ClientId}\\{session.EndPoint} ({session.Account}:{session.Player?.Name}) retransmit requested packet {sequence} not in cache. Cache range {cachedPackets.Keys.Min()} - {cachedPackets.Keys.Max()}.");
+                    log.Error($"Session {session.Network?.ClientId}\\{session.EndPointC2S} ({session.Account}:{session.Player?.Name}) retransmit requested packet {sequence} not in cache. Cache range {cachedPackets.Keys.Min()} - {cachedPackets.Keys.Max()}.");
                 }
                 catch
                 {
-                    log.Error($"Session {session.Network?.ClientId}\\{session.EndPoint} ({session.Account}:{session.Player?.Name}) retransmit requested packet {sequence} not in cache. Cache is empty. Race condition threw exception.");
+                    log.Error($"Session {session.Network?.ClientId}\\{session.EndPointC2S} ({session.Account}:{session.Player?.Name}) retransmit requested packet {sequence} not in cache. Cache is empty. Race condition threw exception.");
                 }
             }
             else
-                log.Error($"Session {session.Network?.ClientId}\\{session.EndPoint} ({session.Account}:{session.Player?.Name}) retransmit requested packet {sequence} not in cache. Cache is empty.");
+                log.Error($"Session {session.Network?.ClientId}\\{session.EndPointC2S} ({session.Account}:{session.Player?.Name}) retransmit requested packet {sequence} not in cache. Cache is empty.");
 
             return false;
         }
@@ -700,7 +700,7 @@ namespace ACE.Server.Network
                 else
                     packet.Header.Sequence = ConnectionData.PacketSequence.NextValue;
                 packet.Header.Id = ServerId;
-                packet.Header.Iteration = 0x14;
+                packet.Header.Iteration = 0x01;
                 packet.Header.Time = (ushort)Timers.PortalYearTicks;
 
                 if (packet.Header.Sequence >= 2u && !isNak)
@@ -732,8 +732,8 @@ namespace ACE.Server.Network
             try
             {
                 // On connection to server, client expects response on the connection it initiated, once that occurs, the client connects to the +1 port and then the server transmits on that connection, while the client continues to transmit on the initial port.
-                //var socket = packet.Header.HasFlag(PacketHeaderFlags.ConnectRequest) ? connectionC2S.Socket: connectionS2C.Socket;
-                var socket = session.State < SessionState.AuthConnected ? connectionC2S.Socket : connectionS2C.Socket;
+                var socket = (session.EndPointS2C is null) ? connectionC2S.Socket : connectionS2C.Socket;
+                var endPoint = (session.EndPointS2C is null) ? session.EndPointC2S : session.EndPointS2C;
 
                 packet.CreateReadyToSendPacket(buffer, out var size);
 
@@ -743,14 +743,14 @@ namespace ACE.Server.Network
                 {
                     var listenerEndpoint = (System.Net.IPEndPoint)socket.LocalEndPoint;
                     var sb = new StringBuilder();
-                    sb.AppendLine(String.Format("[{5}] Sending Packet (Len: {0}) [{1}:{2}=>{3}:{4}]", size, listenerEndpoint.Address, listenerEndpoint.Port, session.EndPoint.Address, session.EndPoint.Port, session.Network.ClientId));
+                    sb.AppendLine(String.Format("[{5}] Sending Packet (Len: {0}) [{1}:{2}=>{3}:{4}]", size, listenerEndpoint.Address, listenerEndpoint.Port, endPoint.Address, endPoint.Port, session.Network.ClientId));
                     sb.AppendLine(buffer.BuildPacketString(0, size));
                     packetLog.Debug(sb.ToString());
                 }
 
                 try
                 {
-                    socket.SendTo(buffer, size, SocketFlags.None, session.EndPoint);
+                    socket.SendTo(buffer, size, SocketFlags.None, endPoint);
                 }
                 catch (SocketException ex)
                 {
@@ -761,7 +761,7 @@ namespace ACE.Server.Network
                     var listenerEndpoint = (System.Net.IPEndPoint)socket.LocalEndPoint;
                     var sb = new StringBuilder();
                     sb.AppendLine(ex.ToString());
-                    sb.AppendLine(String.Format("[{5}] Sending Packet (Len: {0}) [{1}:{2}=>{3}:{4}]", buffer.Length, listenerEndpoint.Address, listenerEndpoint.Port, session.EndPoint.Address, session.EndPoint.Port, session.Network.ClientId));
+                    sb.AppendLine(String.Format("[{5}] Sending Packet (Len: {0}) [{1}:{2}=>{3}:{4}]", buffer.Length, listenerEndpoint.Address, listenerEndpoint.Port, endPoint.Address, endPoint.Port, session.Network.ClientId));
                     log.Error(sb.ToString());
 
                     session.Terminate(SessionTerminationReason.SendToSocketException, null, null, ex.Message);
