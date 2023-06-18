@@ -8,6 +8,9 @@ using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Managers;
+using ACE.Server.Network.Enum;
+using ACE.Server.Network.GameMessages.Messages;
+using ACE.Server.Network.Sequence;
 using ACE.Server.Physics.Animation;
 using ACE.Server.Physics.Collision;
 using ACE.Server.Physics.Combat;
@@ -1652,10 +1655,12 @@ namespace ACE.Server.Physics
 
         public int InitialUpdates;
 
-        public void UpdateObjectInternal(double quantum)
+        public Transition UpdateObjectInternal(double quantum)
         {
+            Transition transit = null;
+
             if ((TransientState & TransientStateFlags.Active) == 0 || CurCell == null)
-                return;
+                return null;
 
             if ((TransientState & TransientStateFlags.CheckEthereal) != 0)
                 set_ethereal(false, false);
@@ -1685,10 +1690,10 @@ namespace ACE.Server.Physics
                     if (GetBlockDist(Position, newPos) > 1)
                     {
                         log.Warn($"WARNING: failed transition for {Name} from {Position} to {newPos}");
-                        return;
+                        return null;
                     }
 
-                    var transit = transition(Position, newPos, false);
+                    transit = transition(Position, newPos, false);
 
 
                     // temporarily modified while debug path is examined
@@ -1735,6 +1740,8 @@ namespace ACE.Server.Physics
             if (ParticleManager != null) ParticleManager.UpdateParticles();
 
             if (ScriptManager != null) ScriptManager.UpdateScripts();
+
+            return transit;
         }
 
         public static int GetBlockDist(Position a, Position b)
@@ -4293,7 +4300,9 @@ namespace ACE.Server.Physics
         /// </summary>
         public bool update_object_server_new(bool forcePos = true)
         {
-            if (Parent != null || CurCell == null || State.HasFlag(PhysicsState.Frozen))
+            // added teleporting bit to fix pk logout on death
+            // system is setting them to frozen state, preventing the teleport
+            if (Parent != null || CurCell == null || State.HasFlag(PhysicsState.Frozen) && !(WeenieObj.WorldObject?.Teleporting ?? false))
             {
                 TransientState &= ~TransientStateFlags.Active;
                 return false;
@@ -4305,62 +4314,12 @@ namespace ACE.Server.Physics
 
             //Console.WriteLine($"{Name}.update_object_server({forcePos}) - deltaTime: {deltaTime}");
 
-            var isTeleport = WeenieObj.WorldObject?.Teleporting ?? false;
-
-            // commented out for debugging
-            if (deltaTime > PhysicsGlobals.HugeQuantum && !isTeleport)
-            {
-                UpdateTime = PhysicsTimer.CurrentTime;   // consume time?
-                return false;
-            }
-
-            var requestCell = RequestPos.ObjCellID;
+            //var minDistCheck = Position.DistanceSquared(RequestPos);
+            //if (minDistCheck < PhysicsGlobals.EpsilonSq)
+            //    return false;
 
             var success = true;
-
-            if (!isTeleport)
-            {
-                if (GetBlockDist(Position, RequestPos) > 1)
-                {
-                    log.Warn($"WARNING: failed transition for {Name} from {Position} to {RequestPos}");
-                    success = false;
-                }
-
-                while (deltaTime > PhysicsGlobals.MaxQuantum)
-                {
-                    PhysicsTimer_CurrentTime += PhysicsGlobals.MaxQuantum;
-                    UpdateObjectInternal(PhysicsGlobals.MaxQuantum);
-                    deltaTime -= PhysicsGlobals.MaxQuantum;
-                }
-
-                if (deltaTime > PhysicsGlobals.MinQuantum)
-                {
-                    PhysicsTimer_CurrentTime += deltaTime;
-                    UpdateObjectInternal(deltaTime);
-                }
-
-                success &= requestCell >> 16 != 0x18A || CurCell?.ID >> 16 == requestCell >> 16;
-            }
-
-            RequestPos.ObjCellID = requestCell;
-
-            if (forcePos && success)
-            {
-                // attempt transition to request pos,
-                // to trigger any collision detection
-                var transit = transition(Position, RequestPos, false);
-
-                if (transit != null)
-                {
-                    var prevContact = (TransientState & TransientStateFlags.Contact) != 0;
-
-                    foreach (var collideObject in transit.CollisionInfo.CollideObject)
-                        track_object_collision(collideObject, prevContact);
-                }
-
-                set_current_pos(RequestPos);
-            }
-
+            var isTeleport = WeenieObj.WorldObject?.Teleporting ?? false;
             // for teleport, use SetPosition?
             if (isTeleport)
             {
@@ -4370,7 +4329,92 @@ namespace ACE.Server.Physics
                 setPosition.Pos = RequestPos;
                 setPosition.Flags = SetPositionFlags.SendPositionEvent | SetPositionFlags.Slide | SetPositionFlags.Placement | SetPositionFlags.Teleport;
 
+                set_current_pos(RequestPos);
                 SetPosition(setPosition);
+            }
+            else
+            {
+                // commented out for debugging
+                if (deltaTime > PhysicsGlobals.HugeQuantum)
+                {
+                    UpdateTime = PhysicsTimer.CurrentTime;   // consume time?
+                    return false;
+                }
+
+                var requestCell = RequestPos.ObjCellID;
+
+                if (GetBlockDist(Position, RequestPos) > 1)
+                {
+                    log.Warn($"WARNING: failed transition for {Name} from {Position} to {RequestPos}");
+                    success = false;
+                }
+
+                var minterp = get_minterp();
+
+                Transition transit = null;
+                while (deltaTime > PhysicsGlobals.MaxQuantum)
+                {
+                    PhysicsTimer_CurrentTime += PhysicsGlobals.MaxQuantum;
+                    transit = UpdateObjectInternal(PhysicsGlobals.MaxQuantum);
+                    deltaTime -= PhysicsGlobals.MaxQuantum;
+                }
+
+                if (deltaTime > PhysicsGlobals.MinQuantum)
+                {
+                    PhysicsTimer_CurrentTime += deltaTime;
+                    transit = UpdateObjectInternal(deltaTime);
+                }
+
+                success &= requestCell >> 16 != 0x18A || CurCell?.ID >> 16 == requestCell >> 16;
+
+                RequestPos.ObjCellID = requestCell;
+
+                if (success)
+                {
+                    var player = WeenieObj.WorldObject as Player;
+                    var valid = false;
+                    float dist;
+
+                    bool needCollisions = false;
+                    if (deltaTime <= PhysicsGlobals.MinQuantum && transit == null)
+                        needCollisions = true;
+
+                    Transition fullTransition = transition(Position, RequestPos, false);
+                    if (fullTransition != null)
+                    {
+                        dist = fullTransition.SpherePath.CurPos.Distance(fullTransition.SpherePath.EndPos);
+
+                        if (dist < 0.01f)
+                            valid = true;
+                    }
+                    else
+                        dist = Position.Distance(RequestPos);
+
+                    //if (valid || forcePos || player?.GodState != null)
+                    if (valid || forcePos)
+                    {
+                        if (transit != null && needCollisions)
+                        {
+                            // Process remaining collisions that were not processed in UpdateObjectInternal() above.
+                            var prevContact = (TransientState & TransientStateFlags.Contact) != 0;
+
+                            foreach (var collideObject in transit.CollisionInfo.CollideObject)
+                                track_object_collision(collideObject, prevContact);
+                        }
+
+                        set_current_pos(RequestPos);
+                    }
+                    else if (dist > 0.1)
+                    {
+                        WeenieObj.WorldObject.Location = new ACE.Entity.Position(Position.ObjCellID, Position.Frame.Origin, Position.Frame.Orientation);
+                        WeenieObj.WorldObject.Sequences.GetNextSequence(SequenceType.ObjectForcePosition);
+                        WeenieObj.WorldObject.SendUpdatePosition();
+                        success = false;
+
+                        //if (player != null)
+                        //    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Force position - distance: {dist.ToString("0.00")} Transit was null: {transit == null}", ChatMessageType.Broadcast));
+                    }
+                }
             }
 
             UpdateTime = PhysicsTimer_CurrentTime;

@@ -64,6 +64,11 @@ namespace ACE.Server.WorldObjects
 
         public ACE.Entity.Position LastGroundPos;
         public ACE.Entity.Position SnapPos;
+        public float PrevMovementUpdateMaxSpeed;
+        public bool HasPerformedActionsSinceLastMovementUpdate; // Ideally we wouldn't need this, but necessary until we figure out how to detect certain actions while a player isn't running with FastTicks enabled.
+        public double LastPlayerAutoposTime;
+        public double LastPlayerMovementCheckTime;
+        public int MovementEnforcementCounter;
 
         public ConfirmationManager ConfirmationManager;
 

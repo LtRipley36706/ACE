@@ -13,8 +13,9 @@ using ACE.Database;
 using ACE.DatLoader;
 using ACE.Server.Command;
 using ACE.Server.Managers;
-using ACE.Server.Network.Managers;
 using ACE.Server.Mods;
+using ACE.Server.Network.Managers;
+using ACE.Server.Physics;
 
 namespace ACE.Server
 {
@@ -293,6 +294,9 @@ namespace ACE.Server
             }
             else
                 log.Info("Precaching World Database Disabled...");
+
+            log.Info("Initializing Physics Engine...");
+            PhysicsEngine.Initialize(true);
 
             log.Info("Initializing PlayerManager...");
             PlayerManager.Initialize();

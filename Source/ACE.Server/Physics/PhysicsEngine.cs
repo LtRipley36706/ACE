@@ -60,6 +60,12 @@ namespace ACE.Server.Physics
             Instance = this;
         }
 
+        public static void Initialize(bool isServer)
+        {
+            Instance = new PhysicsEngine(new ObjectMaint(), new SmartBox());
+            Instance.Server = isServer;
+        }
+
         /*public static void AddStaticAnimatingObject(PhysicsObj obj) // Was used in PhysicsObj.InitDefaults
         {
             StaticAnimatingObjects.Add(obj);
