@@ -27,9 +27,13 @@ public partial class Account
 
     public byte[] CreateIP { get; set; }
 
+    public string CreateIPNtoa { get; set; }
+
     public DateTime? LastLoginTime { get; set; }
 
     public byte[] LastLoginIP { get; set; }
+
+    public string LastLoginIPNtoa { get; set; }
 
     public uint TotalTimesLoggedIn { get; set; }
 

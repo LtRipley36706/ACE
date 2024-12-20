@@ -31,6 +31,7 @@ public partial class AuthDbContext : DbContext
             optionsBuilder.UseMySql(connectionString, DatabaseManager.CachedServerVersionAutoDetect(config.Database, connectionString), builder =>
             {
                 builder.EnableRetryOnFailure(10);
+                builder.TranslateParameterizedCollectionsToConstants();
             });
         }
     }
@@ -38,7 +39,7 @@ public partial class AuthDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
-            .UseCollation("utf8_general_ci")
+            .UseCollation("utf8mb3_general_ci")
             .HasCharSet("utf8mb3");
 
         modelBuilder.Entity<Accesslevel>(entity =>
@@ -91,6 +92,10 @@ public partial class AuthDbContext : DbContext
             entity.Property(e => e.CreateIP)
                 .HasMaxLength(16)
                 .HasColumnName("create_I_P");
+            entity.Property(e => e.CreateIPNtoa)
+                .HasMaxLength(45)
+                .HasComputedColumnSql("inet6_ntoa(`create_I_P`)", false)
+                .HasColumnName("create_I_P_ntoa");
             entity.Property(e => e.CreateTime)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("datetime")
@@ -101,6 +106,10 @@ public partial class AuthDbContext : DbContext
             entity.Property(e => e.LastLoginIP)
                 .HasMaxLength(16)
                 .HasColumnName("last_Login_I_P");
+            entity.Property(e => e.LastLoginIPNtoa)
+                .HasMaxLength(45)
+                .HasComputedColumnSql("inet6_ntoa(`last_Login_I_P`)", false)
+                .HasColumnName("last_Login_I_P_ntoa");
             entity.Property(e => e.LastLoginTime)
                 .HasColumnType("datetime")
                 .HasColumnName("last_Login_Time");

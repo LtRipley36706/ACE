@@ -135,6 +135,7 @@ public partial class WorldDbContext : DbContext
             optionsBuilder.UseMySql(connectionString, DatabaseManager.CachedServerVersionAutoDetect(config.Database, connectionString), builder =>
             {
                 builder.EnableRetryOnFailure(10);
+                builder.TranslateParameterizedCollectionsToConstants();
             });
         }
     }
@@ -142,7 +143,7 @@ public partial class WorldDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
-            .UseCollation("utf8_general_ci")
+            .UseCollation("utf8mb3_general_ci")
             .HasCharSet("utf8mb3");
 
         modelBuilder.Entity<CookBook>(entity =>
