@@ -3981,7 +3981,7 @@ namespace ACE.Server.Command.Handlers
             CommandHandlerHelper.WriteOutputInfo(session, "--====--");
         }
 
-        [CommandHandler("acctlist", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Show list of accounts connected to world", "(filter)")]
+        [CommandHandler("acctlist", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Show list of accounts connected to server", "(filter)")]
         public static void HandleAcctList(Session session, params string[] parameters)
         {
             var accountList = NetworkManager.GetAllAccountsFromSessions();
@@ -4014,7 +4014,7 @@ namespace ACE.Server.Command.Handlers
             CommandHandlerHelper.WriteOutputInfo(session, "--====--");
         }
 
-        [CommandHandler("sesslist", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Show list of sessions connected to world", "(filter)")]
+        [CommandHandler("sesslist", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Show list of sessions connected to server", "(filter)")]
         public static void HandleSessList(Session session, params string[] parameters)
         {
             var sessionList = NetworkManager.GetAllActiveSessions();
