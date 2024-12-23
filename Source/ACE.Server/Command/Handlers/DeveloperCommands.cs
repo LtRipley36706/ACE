@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using System.Runtime;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using log4net;
@@ -27,6 +28,7 @@ using ACE.Server.Managers;
 using ACE.Server.Network;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
+using ACE.Server.Network.Managers;
 using ACE.Server.Physics.Entity;
 using ACE.Server.Physics.Extensions;
 using ACE.Server.Physics.Managers;
@@ -3946,6 +3948,105 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
+        [CommandHandler("charlist", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Show list of characters connected and in world", "(filter)")]
+        public static void HandleCharList(Session session, params string[] parameters)
+        {
+            var playerList = PlayerManager.GetAllOnline();
 
+            var totalPlayers = playerList.Count;
+            int? totalFilteredPlayers = null;
+
+            var filter = string.Empty;
+            if (parameters.Length >= 1)
+            {
+                filter = parameters[0].ToString();
+                if (!string.IsNullOrWhiteSpace(filter))
+                {
+                    playerList = playerList.Where(p => Regex.IsMatch(p.Name, filter.WildCardToRegular(), RegexOptions.IgnoreCase)).ToList();
+                    totalFilteredPlayers = playerList.Count;
+                }
+            }
+
+            playerList = playerList.OrderBy(p => p.Name).ToList();
+
+            var msgHeader = $"\nCharacter List --====-- {totalFilteredPlayers ?? totalPlayers} of {totalPlayers} players\n";
+            msgHeader += "================================================\n";
+            CommandHandlerHelper.WriteOutputInfo(session, msgHeader);
+
+            foreach (var player in playerList)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $" {player.Name}\n");
+            }
+
+            CommandHandlerHelper.WriteOutputInfo(session, "--====--");
+        }
+
+        [CommandHandler("acctlist", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Show list of accounts connected to world", "(filter)")]
+        public static void HandleAcctList(Session session, params string[] parameters)
+        {
+            var accountList = NetworkManager.GetAllAccountsFromSessions();
+
+            var totalAccounts = accountList.Count;
+            int? totalFilteredAccounts = null;
+
+            var filter = string.Empty;
+            if (parameters.Length >= 1)
+            {
+                filter = parameters[0].ToString();
+                if (!string.IsNullOrWhiteSpace(filter))
+                {
+                    accountList = accountList.Where(a => Regex.IsMatch(a.AccountName, filter.WildCardToRegular(), RegexOptions.IgnoreCase)).ToHashSet();
+                    totalFilteredAccounts = accountList.Count;
+                }
+            }
+
+            accountList = accountList.OrderBy(a => a.AccountName).ToHashSet();
+
+            var msgHeader = $"\nAccount List --====-- {totalFilteredAccounts ?? totalAccounts} of {totalAccounts} accounts\n";
+            msgHeader += "================================================\n";
+            CommandHandlerHelper.WriteOutputInfo(session, msgHeader);
+
+            foreach (var account in accountList)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $" {account.AccountName,-50} | {(account.CharID == 0x0 ? "0x0" : $"0x{account.CharID:X8}")}\n");
+            }
+
+            CommandHandlerHelper.WriteOutputInfo(session, "--====--");
+        }
+
+        [CommandHandler("sesslist", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Show list of sessions connected to world", "(filter)")]
+        public static void HandleSessList(Session session, params string[] parameters)
+        {
+            var sessionList = NetworkManager.GetAllActiveSessions();
+
+            var totalSessions = sessionList.Count;
+            int? totalFilteredSessions = null;
+
+            var filter = string.Empty;
+            if (parameters.Length >= 1)
+            {
+                filter = parameters[0].ToString();
+                if (!string.IsNullOrWhiteSpace(filter))
+                {
+                    sessionList = sessionList.Where(a => Regex.IsMatch(a.AccountName, filter.WildCardToRegular(), RegexOptions.IgnoreCase)).ToHashSet();
+                    totalFilteredSessions = sessionList.Count;
+                }
+            }
+
+            sessionList = sessionList.OrderBy(s => s.SessionID).ToHashSet();
+
+            var msgHeader = $"\nSession List --====-- {totalFilteredSessions ?? totalSessions} of {totalSessions} sessions\n";
+            msgHeader += "================================================\n";
+            CommandHandlerHelper.WriteOutputInfo(session, msgHeader);
+
+            foreach (var sesh in sessionList)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $" {sesh.SessionID,-5} | {sesh.IP:-5,-16} | {sesh.AccountName,-26} | {(sesh.CharID == 0x0 ? "0x0" : $"0x{sesh.CharID:X8}")}\n");
+                if (sesh.CharID != 0x0)
+                    CommandHandlerHelper.WriteOutputInfo(session, $"  -----  Character Name: {sesh.CharName}\n");
+            }
+
+            CommandHandlerHelper.WriteOutputInfo(session, "--====--");
+        }
     }
 }

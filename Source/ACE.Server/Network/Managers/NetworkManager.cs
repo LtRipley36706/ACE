@@ -387,5 +387,51 @@ namespace ACE.Server.Network.Managers
                 session?.Terminate(SessionTerminationReason.ServerShuttingDown, new GameMessages.Messages.GameMessageCharacterError(CharacterError.ServerCrash1));
             }
         }
+
+        public static HashSet<(string AccountName, uint CharID)> GetAllAccountsFromSessions()
+        {
+            var sessionList = new HashSet<(string AccountName, uint CharID)>();
+
+            sessionLock.EnterReadLock();
+            try
+            {
+                foreach (var session in sessionMap)
+                {
+                    if (session == null)
+                        continue;
+
+                    sessionList.Add((session.Account ?? "N/A", session.Player?.Guid.Full ?? 0x0));
+                }
+            }
+            finally
+            {
+                sessionLock.ExitReadLock();
+            }
+
+            return sessionList;
+        }
+
+        public static HashSet<(ushort SessionID, IPAddress IP, string AccountName, uint CharID, string CharName)> GetAllActiveSessions()
+        {
+            var sessionList = new HashSet<(ushort SessionID, IPAddress IP, string AccountName, uint CharID, string CharName)>();
+
+            sessionLock.EnterReadLock();
+            try
+            {
+                foreach (var session in sessionMap)
+                {
+                    if (session == null)
+                        continue;
+
+                    sessionList.Add((session.Network.ClientId, session.EndPointC2S.Address, session.Account ?? "N/A", session.Player?.Guid.Full ?? 0x0, session.Player?.Name));
+                }
+            }
+            finally
+            {
+                sessionLock.ExitReadLock();
+            }
+
+            return sessionList;
+        }
     }
 }
