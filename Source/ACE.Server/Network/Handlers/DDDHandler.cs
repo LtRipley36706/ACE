@@ -45,6 +45,8 @@ namespace ACE.Server.Network.Handlers
                 switch (entry.DatFileId)
                 {
                     case 1: // PORTAL
+                        if (entry.DatFileType != 0 || entry.DatFileType == 1766222152) // HIRES
+                            continue;
                         clientPortalDatIntSet = entry.List;
                         if (entry.List.Iterations < DatManager.PortalDat.Iteration)
                         {
